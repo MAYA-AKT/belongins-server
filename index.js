@@ -35,6 +35,16 @@ async function run() {
    
     await client.connect();
      
+    const db = client.db("belongings").collection('items');
+      
+    app.post('/add-items',async(req,res)=>{
+      const newItems = req.body;
+      const items = await db.insertOne(newItems);
+       res.status(200).send({message:'item successfully inserted',items});
+    })
+
+
+
 
 
 
@@ -69,7 +79,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Career Code ');
+    res.send('Belongins are Found');
 });
 
 app.listen(port, () => {
