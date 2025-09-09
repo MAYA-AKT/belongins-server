@@ -76,7 +76,15 @@ async function run() {
        const filter = {email};
        const result = await db.find(filter).toArray();
        res.status(200).send(result);
-    })
+    });
+
+    app.delete('/delete-item/:id',async(req,res)=>{
+       const id= req.params.id;
+       const query = {_id:new ObjectId(id)};
+       const result = await db.deleteOne(query);
+       res.status(200).send(result);
+
+    });
 
 
 
