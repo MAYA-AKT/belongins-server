@@ -69,6 +69,13 @@ async function run() {
         sort({ _id: -1 }).
         toArray();
       res.send(items);
+    });
+
+    app.get('/my-items/:email',async(req,res)=>{
+       const email = req.params.email;
+       const filter = {email};
+       const result = await db.find(filter).toArray();
+       res.status(200).send(result);
     })
 
 
