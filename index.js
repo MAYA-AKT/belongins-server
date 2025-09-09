@@ -32,16 +32,28 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-   
+
     await client.connect();
-     
+
     const db = client.db("belongings").collection('items');
-      
-    app.post('/add-items',async(req,res)=>{
-      const newItems = req.body;
+
+    app.post('/add-items', async (req, res) => {
+    const newItems = {...req.body,createdAt: new Date() };
+    console.log('new items',newItems);
+    
       const items = await db.insertOne(newItems);
-       res.status(200).send({message:'item successfully inserted',items});
-    })
+      res.status(200).send({ message: 'item successfully inserted', items });
+    });
+
+    // get 6 Latest Find & Lost Items by the most recent date.
+    app.get('/get-items', async (req, res) => {
+      const items = await db.find()
+        .sort({ _id: -1 })
+        .limit(6)
+        .toArray();
+      res.status(200).send(items);
+    });
+
 
 
 
@@ -69,7 +81,7 @@ async function run() {
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
-   
+
     // await client.close();
   }
 }
@@ -79,10 +91,10 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Belongins are Found');
+  res.send('Belongins are Found');
 });
 
 app.listen(port, () => {
-    console.log(`server is running on port : ${port}`);
+  console.log(`server is running on port : ${port}`);
 
 })
