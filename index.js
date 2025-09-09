@@ -47,7 +47,8 @@ async function run() {
 
     // get 6 Latest Find & Lost Items by the most recent date.
     app.get('/get-items', async (req, res) => {
-      const items = await db.find()
+      const items = await db
+        .find()
         .sort({ _id: -1 })
         .limit(6)
         .toArray();
@@ -59,7 +60,15 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await db.findOne(query);
       res.send(result)
-      
+
+    });
+
+    app.get('/all-items', async (req, res) => {
+      const items = await db.
+        find().
+        sort({ _id: -1 }).
+        toArray();
+      res.send(items);
     })
 
 
