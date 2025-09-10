@@ -36,6 +36,7 @@ async function run() {
     await client.connect();
 
     const db = client.db("belongings").collection('items');
+    const recoverdb = client.db("belongings").collection('recover');
 
     app.post('/add-items', async (req, res) => {
       const newItems = { ...req.body, createdAt: new Date() };
@@ -71,20 +72,54 @@ async function run() {
       res.send(items);
     });
 
-    app.get('/my-items/:email',async(req,res)=>{
-       const email = req.params.email;
-       const filter = {email};
-       const result = await db.find(filter).toArray();
-       res.status(200).send(result);
+    app.get('/my-items/:email', async (req, res) => {
+      const email = req.params.email;
+      const filter = { email };
+      const result = await db.find(filter).toArray();
+      res.status(200).send(result);
     });
 
-    app.delete('/delete-item/:id',async(req,res)=>{
-       const id= req.params.id;
-       const query = {_id:new ObjectId(id)};
-       const result = await db.deleteOne(query);
-       res.status(200).send(result);
+    app.put('/update-item/:id', async (req, res) => {
+      const id = req.params.id;
+      const updateItem = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: updateItem
+      }
+      const result = await db.updateOne(filter, updateDoc, options);
+      res.send(result);
+
+    })
+
+    app.delete('/delete-item/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await db.deleteOne(query);
+      res.status(200).send(result);
 
     });
+
+    app.post('/recoveries-item', async (req, res) => {
+      const recoverItem = req.body;
+      
+      const item = await db.findOne({_id:new ObjectId(recoverItem.itemId)});
+      if(item.status === 'recoverd'){
+        return res.status(400).json({ message: "Item already recovered!" });
+      }
+
+      const saveDb = await recoverdb.insertOne(recoverItem);
+      await db.updateOne({_id:new ObjectId(recoverItem.itemId)},{
+         $set:{
+          status:'recoverd'
+         }
+      });
+      res.send({message: 'Recovery saved and item updated!' ,saveDb});
+
+
+
+      
+    })
 
 
 
