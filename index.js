@@ -3,7 +3,8 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const admin = require("firebase-admin");
-const serviceAccount = require("./lost-found-app.json");
+const decoded = Buffer.from(process.env.FIREBASE_SERVICES_KEY,'base64').toString('utf8');
+const serviceAccount = JSON.parse(decoded);
 
 const port = process.env.PORT || 3000;
 const app = express();
