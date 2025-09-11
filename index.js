@@ -2,9 +2,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const admin = require("firebase-admin");
-const decoded = Buffer.from(process.env.FIREBASE_SERVICES_KEY,'base64').toString('utf8');
-const serviceAccount = JSON.parse(decoded);
+
 
 const port = process.env.PORT || 3000;
 const app = express();
@@ -35,36 +33,8 @@ const client = new MongoClient(uri, {
 });
 
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-const verifyFirebaseToken = async (req, res, next) => {
-  const authorHeader = req.headers.authorization;
-  if (!authorHeader || !authorHeader.startsWith('Bearer')) {
-    return res.status(401).send({ message: "Unauthorized Access" });
-  }
-  const token = authorHeader.split(' ')[1];
-  try {
-    const decode = await admin.auth().verifyIdToken(token);
-    req.decoded = decode;
-
-    next();
-  } catch (error) {
-    return res.status(401).send({ message: "Unauthorized Access" });
-  }
 
 
-}
-
-const verifyEmail=async(req,res,next)=>{
-  const email = req.params.email;
-   if (email !== req.decoded.email) {
-        return res.status(403).send({ message: "Forbiden Access" });
-      }
-      next();
-
-}
 
 
 
@@ -110,7 +80,7 @@ async function run() {
       res.send(items);
     });
 
-    app.get('/my-items/:email', verifyFirebaseToken,verifyEmail, async (req, res) => {
+    app.get('/my-items/:email', async (req, res) => {
       const email = req.params.email;
       
 
@@ -162,7 +132,7 @@ async function run() {
     });
 
 
-    app.get('/all-recoverd-items/:email',verifyFirebaseToken,verifyEmail, async (req, res) => {
+    app.get('/all-recoverd-items/:email', async (req, res) => {
       const email = req.params.email;
 
      
