@@ -2,7 +2,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-
+const admin = require("firebase-admin");
+const serviceAccount = require("./lost-found-app.json");
 
 const port = process.env.PORT || 3000;
 const app = express();
@@ -19,6 +20,8 @@ app.use(cors());
 
 
 
+
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.7ngg3kc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -29,6 +32,40 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+const verifyFirebaseToken = async (req, res, next) => {
+  const authorHeader = req.headers.authorization;
+  if (!authorHeader || !authorHeader.startsWith('Bearer')) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+  const token = authorHeader.split(' ')[1];
+  try {
+    const decode = await admin.auth().verifyIdToken(token);
+    req.decoded = decode;
+
+    next();
+  } catch (error) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+
+
+}
+
+const verifyEmail=async(req,res,next)=>{
+  const email = req.params.email;
+   if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "Forbiden Access" });
+      }
+      next();
+
+}
+
+
 
 async function run() {
   try {
@@ -72,8 +109,10 @@ async function run() {
       res.send(items);
     });
 
-    app.get('/my-items/:email', async (req, res) => {
+    app.get('/my-items/:email', verifyFirebaseToken,verifyEmail, async (req, res) => {
       const email = req.params.email;
+      
+
       const filter = { email };
       const result = await db.find(filter).toArray();
       res.status(200).send(result);
@@ -102,23 +141,33 @@ async function run() {
 
     app.post('/recoveries-item', async (req, res) => {
       const recoverItem = req.body;
-      
-      const item = await db.findOne({_id:new ObjectId(recoverItem.itemId)});
-      if(item.status === 'recoverd'){
+
+      const item = await db.findOne({ _id: new ObjectId(recoverItem.itemId) });
+      if (item.status === 'recoverd') {
         return res.status(400).json({ message: "Item already recovered!" });
       }
 
       const saveDb = await recoverdb.insertOne(recoverItem);
-      await db.updateOne({_id:new ObjectId(recoverItem.itemId)},{
-         $set:{
-          status:'recoverd'
-         }
+      await db.updateOne({ _id: new ObjectId(recoverItem.itemId) }, {
+        $set: {
+          status: 'recoverd'
+        }
       });
-      res.send({message: 'Recovery saved and item updated!' ,saveDb});
+      res.send({ message: 'Recovery saved and item updated!', saveDb });
 
 
 
-      
+
+    });
+
+
+    app.get('/all-recoverd-items/:email',verifyFirebaseToken,verifyEmail, async (req, res) => {
+      const email = req.params.email;
+
+     
+      const filter = { email }
+      const items = await recoverdb.find(filter).toArray();
+      res.send(items);
     })
 
 
@@ -145,8 +194,8 @@ async function run() {
 
 
 
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
 
     // await client.close();
